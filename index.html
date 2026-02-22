@@ -10,44 +10,34 @@
 <body>
 <div id="app">
 
-  <!-- ══ SETUP PAGE ══════════════════════════════════════════════════════════ -->
   <div id="page-setup" class="page active">
-    <div class="header">
-      <div class="logo">
-        <div><div class="logo-text">AI CANDIDATE INTELLIGENCE</div></div>
-      </div>
-    </div>
-    <div style="padding:40px 20px;">
-    <div class="setup-inner fade-up">
+    <div class="header"><div class="logo"><div class="logo-text">AI CANDIDATE INTELLIGENCE</div></div></div>
+    <div style="padding:40px 20px;"><div class="setup-inner fade-up">
       <div class="hero">
         <div class="hero-label">SCREENING INTELLIGENCE PLATFORM</div>
-        <p>AI-powered candidate screening with explainable scores, bias audit, and interview questions.</p>
+        <p>AI-powered candidate screening with explainable scores and interview questions.</p>
       </div>
-
       <div class="card" style="padding:20px;margin-bottom:16px;">
-        <div class="section-label">API KEY</div>
+        <div class="section-label">API KEY (OpenRouter)</div>
         <div style="display:flex;gap:10px;">
-          <input type="password" id="api-key-input" placeholder="Paste your API key here..."/>
+          <input type="password" id="api-key-input" placeholder="Paste your OpenRouter API key here..."/>
           <button class="btn-ghost" onclick="saveKey()" style="white-space:nowrap;padding:10px 18px;">Save</button>
         </div>
-        <div style="font-size:11px;color:#3A5068;margin-top:7px;">Paste your API key above to get started</div>
+        <div style="font-size:11px;color:#3A5068;margin-top:7px;">Get a free key at openrouter.ai</div>
       </div>
-
       <div class="card" style="padding:20px;margin-bottom:16px;">
         <div class="section-label">RESUME SOURCE</div>
         <div class="toggle-row">
-          <button class="toggle-btn active" id="btn-sample" onclick="switchMode('sample')">  Sample Resumes</button>
-          <button class="toggle-btn"        id="btn-pdf"    onclick="switchMode('pdf')">  Upload PDF Resumes</button>
+          <button class="toggle-btn active" id="btn-sample" onclick="switchMode('sample')">Sample Resumes</button>
+          <button class="toggle-btn" id="btn-pdf" onclick="switchMode('pdf')">Upload PDF Resumes</button>
         </div>
-
         <div id="sample-mode">
           <div style="display:flex;align-items:center;gap:14px;">
             <span class="section-label" style="margin:0;flex-shrink:0;">NUMBER OF SAMPLES</span>
             <select id="sample-count-select" onchange="onSampleCountChange()" style="max-width:220px;"></select>
-            <span style="font-size:11px;color:#6B8CAE;flex-shrink:0;">max 8 available</span>
+            <span style="font-size:11px;color:#6B8CAE;flex-shrink:0;">max 15 available</span>
           </div>
         </div>
-
         <div id="pdf-mode" style="display:none;">
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
             <span class="section-label" style="margin:0;flex-shrink:0;">NUMBER OF RESUMES</span>
@@ -58,44 +48,29 @@
           <div id="pdf-status" style="margin-top:12px;text-align:center;font-size:11px;color:#6B8CAE;"></div>
         </div>
       </div>
-
       <div class="card" style="padding:20px;margin-bottom:20px;">
         <div class="section-label">JOB DESCRIPTION</div>
         <textarea id="jd-input" rows="9"></textarea>
       </div>
-
       <div class="error-box" id="setup-error"></div>
       <div style="text-align:center;">
-        <button class="btn" id="analyze-btn" onclick="startAnalysis()" style="padding:14px 44px;font-size:15px;">Analyze 8 Candidates →</button>
+        <button class="btn" id="analyze-btn" onclick="startAnalysis()" style="padding:14px 44px;font-size:15px;">Analyze 15 Candidates →</button>
       </div>
-    </div>
-    </div>
+    </div></div>
   </div>
 
-  <!-- ══ ANALYZING PAGE ══════════════════════════════════════════════════════ -->
   <div id="page-analyzing" class="page">
-    <div class="header">
-      <div class="logo">
-        <div><div class="logo-text">AI CANDIDATE INTELLIGENCE</div></div>
-      </div>
-    </div>
-    <div class="analyzing-body">
-      <div class="analyzing-inner fade-up">
-        <div class="analyzing-label">ANALYZING CANDIDATES</div>
-        <h2 id="analyzing-name">Processing…</h2>
-        <p id="analyzing-count">0 of 0 candidates done</p>
-        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
-
-      </div>
-    </div>
+    <div class="header"><div class="logo"><div class="logo-text">AI CANDIDATE INTELLIGENCE</div></div></div>
+    <div class="analyzing-body"><div class="analyzing-inner fade-up">
+      <div class="analyzing-label">ANALYZING CANDIDATES</div>
+      <h2 id="analyzing-name">Processing…</h2>
+      <p id="analyzing-count">0 of 0 candidates done</p>
+    </div></div>
   </div>
 
-  <!-- ══ RESULTS PAGE ════════════════════════════════════════════════════════ -->
   <div id="page-results" class="page">
     <div class="header">
-      <div class="logo">
-        <div><div class="logo-text">AI CANDIDATE INTELLIGENCE</div></div>
-      </div>
+      <div class="logo"><div class="logo-text">AI CANDIDATE INTELLIGENCE</div></div>
       <div style="display:flex;gap:10px;align-items:center;">
         <span class="tag tag-blue" id="results-count-tag"></span>
         <button class="btn-ghost" onclick="resetToSetup()">← New Analysis</button>
@@ -105,7 +80,7 @@
       <div class="results-left" id="results-left">
         <div class="stats-row" id="stats-row"></div>
         <div class="card sliders-card" style="margin-bottom:18px;">
-          <div class="section-label">⚖ RANKING WEIGHTS — drag to re-rank in real time</div>
+          <div class="section-label">RANKING WEIGHTS — drag to re-rank in real time</div>
           <div class="sliders-grid">
             <div><div class="slider-header"><span class="slider-key">Skills</span><span class="slider-val" id="w-skills-val">35%</span></div><input type="range" min="0" max="100" value="35" id="w-skills" oninput="onWeightChange()"/></div>
             <div><div class="slider-header"><span class="slider-key">Experience</span><span class="slider-val" id="w-experience-val">35%</span></div><input type="range" min="0" max="100" value="35" id="w-experience" oninput="onWeightChange()"/></div>
@@ -113,18 +88,16 @@
             <div><div class="slider-header"><span class="slider-key">Communication</span><span class="slider-val" id="w-communication-val">15%</span></div><input type="range" min="0" max="100" value="15" id="w-communication" oninput="onWeightChange()"/></div>
           </div>
         </div>
-        <div class="filters" id="filter-row"></div>
         <div id="candidate-list"></div>
       </div>
       <div class="results-right" id="results-right"></div>
     </div>
   </div>
 
-  <!-- ══ EMAIL MODAL ══════════════════════════════════════════════════════════ -->
   <div id="modal">
     <div class="card modal-box">
       <div class="modal-header">
-        <div><div class="modal-title" id="modal-title"></div></div>
+        <div class="modal-title" id="modal-title"></div>
         <button class="btn-ghost" onclick="closeModal()" style="padding:4px 10px;">✕</button>
       </div>
       <div id="modal-loading" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:36px 0;">
