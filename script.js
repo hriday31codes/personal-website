@@ -147,7 +147,7 @@ async function analyzeResume(jd,resume){
   const resumeText=resume.pdfText||resume.raw||"";
   const raw=await callAI([
     {role:"system",content:"You are a recruiter AI. Respond ONLY with a valid JSON object. No markdown, no code fences. Raw JSON only."},
-    {role:"user",content:`Analyze this resume against the job description.\n\nJOB DESCRIPTION:\n${jd}\n\nCANDIDATE: ${resume.name}\nRESUME: ${resumeText}\n\nReturn exactly this JSON:\n{"name":"${resume.name}","headline":"3-word role summary","yearsExp":5,"skills":["s1","s2","s3","s4","s5"],"scores":{"skills":80,"experience":75,"education":65,"communication":70},"strengths":["strength 1","strength 2","strength 3"],"gaps":["gap 1","gap 2"],"summary":"Two honest sentences on fit.","interviewQuestions":["behavioral Q","technical Q","gap-probing Q"],"biasFlags":[],"recommendation":"YES"}\nrecommendation must be one of: STRONG_YES YES MAYBE NO`}
+    {role:"user",content:`Analyze this resume against the job description.\n\nJOB DESCRIPTION:\n${jd}\n\nCANDIDATE: ${resume.name}\nRESUME: ${resumeText}\n\nReturn exactly this JSON:\n{"name":"${resume.name}","headline":"3-word role summary","yearsExp":5,"skills":["s1","s2","s3","s4","s5"],"scores":{"skills":80,"experience":75,"education":65,"communication":70},"strengths":["strength 1","strength 2","strength 3"],"gaps":["gap 1","gap 2"],"summary":"Two honest sentences on fit.","interviewQuestions":["behavioral Q","technical Q","gap-probing Q"],"recommendation":"YES"}\nrecommendation must be one of: STRONG_YES YES MAYBE NO`}
   ],1000);
   const clean=raw.replace(/^```json\s*/i,"").replace(/^```/,"").replace(/```\s*$/,"").trim();
   return JSON.parse(clean);
