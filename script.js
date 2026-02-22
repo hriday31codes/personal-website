@@ -264,9 +264,7 @@ function weightedScore(c) {
 function scoreColor(s) { return s>=75?"#00E676":s>=50?"#FFB74D":"#FF4F4F"; }
 function rankLabel(r)  { return { lbl: "#"+r, col: "#6B8CAE" }; }
 function recBadge(rec) {
-  const m={STRONG_YES:{cls:"tag-green",txt:"STRONG YES"},YES:{cls:"tag-green",txt:"YES"},MAYBE:{cls:"tag-amber",txt:"MAYBE"},NO:{cls:"tag-red",txt:"NO"}};
-  const s=m[rec]||m.MAYBE;
-  return `<span class="tag ${s.cls}">${s.txt}</span>`;
+  return "";
 }
 
 // ── RADAR CHART ───────────────────────────────────────────────────────────────

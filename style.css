@@ -20,15 +20,11 @@ body { background: #070B14; color: #E8F4FD; font-family: 'DM Sans', sans-serif; 
 
 /* ── HEADER ───────────────────────────────────────────────────────────────── */
 .header {
-  border-bottom: 1px solid #1E2D45;
-  padding: 13px 26px;
+  background: #070B14;
+  padding: 20px;
   display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  background: #0D1321;
-  position: sticky;
-  top: 0;
-  z-index: 50;
 }
 .logo { display: flex; align-items: center; gap: 12px; }
 .logo-icon {
@@ -157,9 +153,21 @@ input[type=range]::-webkit-slider-thumb {
 .filter-btn.active { border-color: #00D4FF; background: rgba(0,212,255,.12); color: #00D4FF; }
 
 /* Candidate card */
-.cand-card { display: flex; align-items: center; gap: 14px; padding: 15px 18px; margin-bottom: 10px; cursor: pointer; animation: fadeUp 0.4s ease both; }
+.cand-card {
+  padding: 12px 0;
+  border-bottom: 1px solid #1E2D45;
+  background: none;
+  border-radius: 0;
+  margin-bottom: 0;
+}
 .cand-card.selected { border-color: #00D4FF; background: linear-gradient(135deg,#111827,rgba(0,212,255,.04)); box-shadow: 0 0 0 1px rgba(0,212,255,.25), 0 4px 16px rgba(0,212,255,.1); }
-.cand-rank { width: 34px; text-align: center; flex-shrink: 0; font-family: 'Space Mono', monospace; font-weight: 700; }
+.cand-rank {
+  margin-right: 12px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 600;
+  width: auto;
+  font-size: 16px;
+}
 .cand-info { flex: 1; min-width: 0; }
 .cand-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
 .cand-name { font-size: 15px; font-weight: 600; }
