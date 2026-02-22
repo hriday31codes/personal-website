@@ -45,7 +45,7 @@ window.onload=function(){
   const ss=document.getElementById("sample-count-select");
   for(let i=1;i<=15;i++){const o=document.createElement("option");o.value=i;o.textContent=i+" Sample Resume"+(i>1?"s":"");if(i===15)o.selected=true;ss.appendChild(o);}
   const ps=document.getElementById("pdf-count-select");
-  for(let i=1;i<=30;i++){const o=document.createElement("option");o.value=i;o.textContent=i+" PDF Resume"+(i>1?"s":"");if(i===5)o.selected=true;ps.appendChild(o);}
+  for(let i=1;i<=15;i++){const o=document.createElement("option");o.value=i;o.textContent=i+" PDF Resume"+(i>1?"s":"");if(i===5)o.selected=true;ps.appendChild(o);}
   buildPdfSlots(5);updateAnalyzeBtn();
 };
 
@@ -198,9 +198,9 @@ function renderResults(){
   document.getElementById("results-count-tag").textContent=results.length+" CANDIDATES ANALYZED";
   document.getElementById("stats-row").innerHTML=[
     {label:"ANALYZED",val:results.length,color:"#00D4FF"},
-    {label:"YES",val:results.filter(r=>r.recommendation==="STRONG_YES"||r.recommendation==="YES").length,color:"#00E676"},
-    {label:"MAYBE",val:results.filter(r=>r.recommendation==="MAYBE").length,color:"#FFB74D"},
-    {label:"NOT FIT",val:results.filter(r=>r.recommendation==="NO").length,color:"#FF4F4F"},
+    {label:"STRONG FIT",val:results.filter(r=>weightedScore(r)>=75).length,color:"#00E676"},
+    {label:"MAYBE",val:results.filter(r=>weightedScore(r)>=50&&weightedScore(r)<75).length,color:"#FFB74D"},
+    {label:"NOT FIT",val:results.filter(r=>weightedScore(r)<50).length,color:"#FF4F4F"},
   ].map(s=>`<div class="card stat-card"><div class="stat-num" style="color:${s.color}">${s.val}</div><div class="stat-label">${s.label}</div></div>`).join("");
   renderList();
 }
