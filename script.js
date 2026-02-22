@@ -128,12 +128,17 @@ function showError(msg){const e=document.getElementById("setup-error");e.textCon
 function clearError(){document.getElementById("setup-error").classList.remove("active");}
 
 async function callAI(messages,maxTokens){
+  const referer=window.location.href.split("?")[0]||"https://localhost";
   const res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
     method:"POST",
-    headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey,"HTTP-Referer":"https://talentsignal.app","X-Title":"TalentSignal"},
-    body:JSON.stringify({model:"openrouter/auto",max_tokens:maxTokens||1000,temperature:0.1,messages})
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey,"HTTP-Referer":referer,"X-Title":"AI Candidate Intelligence"},
+    body:JSON.stringify({model:"google/gemini-flash-1.5",max_tokens:maxTokens||1000,temperature:0.1,messages})
   });
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||"HTTP "+res.status);}
+  if(!res.ok){
+    let errMsg="HTTP "+res.status;
+    try{const e=await res.json();errMsg=e.error?.message||errMsg;}catch(ex){}
+    throw new Error(errMsg);
+  }
   const data=await res.json();
   return(data.choices?.[0]?.message?.content||"").trim();
 }
@@ -163,14 +168,15 @@ async function startAnalysis(){
     document.getElementById("analyzing-name").textContent="Processing "+resume.name+"…";
     document.getElementById("analyzing-count").textContent=done+" of "+total+" candidates done";
     let success=false,tries=0;
-    while(!success&&tries<3){
+    while(!success&&tries<2){
       try{
         const result=await analyzeResume(jd,resume);
         result._id=resume.id||i;results.push(result);success=true;
       }catch(e){
         tries++;
-        if(tries>=3){showPage("page-setup");showError("Failed on "+resume.name+": "+e.message);return;}
-        await sleep(3000);
+        console.error("Attempt "+tries+" failed:",e.message);
+        if(tries>=2){showPage("page-setup");showError("Failed on "+resume.name+": "+e.message+" — Check your API key and network.");return;}
+        await sleep(2000);
       }
     }
     done++;
