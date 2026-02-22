@@ -95,30 +95,26 @@ async function handlePdfUpload(id,file){
   renderPdfGrid();updateAnalyzeBtn();
 }
 
-function extractPdfText(file){
-  return new Promise(function(resolve){
-    const reader=new FileReader();
-    reader.onload=function(){
-      try{
-        const bytes=new Uint8Array(reader.result);
-        let raw="";
-        // Extract readable ASCII strings (min length 4) from PDF binary
-        let chunk="";
-        for(let i=0;i<bytes.length;i++){
-          const b=bytes[i];
-          if(b>=32&&b<=126){chunk+=String.fromCharCode(b);}
-          else{if(chunk.length>=4)raw+=chunk+" ";chunk="";}
-        }
-        if(chunk.length>=4)raw+=chunk;
-        // Clean up PDF syntax noise - remove short tokens and PDF keywords
-        const pdfKeywords=/^(obj|endobj|stream|endstream|xref|trailer|startxref|BT|ET|Tf|Td|TD|Tm|TJ|Tj|cm|Do|CS|cs|SCN|scn|RG|rg|re|W|n|q|Q|f|S|s|b|B|EMC|BMC|BDC|DP|MP)$/;
-        const tokens=raw.split(/\s+/).filter(t=>t.length>3&&!/^\d+(\.\d+)?$/.test(t)&&!pdfKeywords.test(t)&&/[a-zA-Z]/.test(t));
-        const text=tokens.join(" ").replace(/\s+/g," ").slice(0,4000);
-        resolve(text||"Could not extract text from "+file.name);
-      }catch(e){resolve("PDF: "+file.name);}
-    };
-    reader.readAsArrayBuffer(file);
-  });
+async function extractPdfText(file){
+  try{
+    const arrayBuffer=await file.arrayBuffer();
+    const pdfjsLib=window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+    let fullText="";
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i);
+      const content=await page.getTextContent();
+      const pageText=content.items.map(item=>item.str).join(" ");
+      fullText+=pageText+" ";
+    }
+    const cleaned=fullText.replace(/\s+/g," ").trim().slice(0,5000);
+    console.log("PDF extracted for",file.name,":",cleaned.slice(0,200));
+    return cleaned||"No text extracted from "+file.name;
+  }catch(e){
+    console.error("PDF.js extraction failed:",e);
+    return "Could not extract text from "+file.name+". Please ensure it is a text-based PDF (not scanned image).";
+  }
 }
 
 function updatePdfStatus(){
@@ -156,27 +152,71 @@ async function callAI(messages,maxTokens){
 
 async function analyzeResume(jd,resume){
   const resumeText=resume.pdfText||resume.raw||"";
-  if(!resumeText||resumeText.length<50){throw new Error("Could not extract enough text from PDF for "+resume.name);}
-  const templateJSON={
-    name:resume.name,
-    headline:"<3-word title from resume>",
-    yearsExp:"<integer years>",
-    skills:["<skill from resume>","<skill>","<skill>","<skill>","<skill>"],
-    scores:{skills:"<0-100 based on JD match>",experience:"<0-100>",education:"<0-100>",communication:"<0-100>"},
-    strengths:["<specific strength from this resume>","<specific strength>","<specific strength>"],
-    gaps:["<specific gap vs JD>","<specific gap>"],
-    summary:"<Two sentences about "+resume.name+"s specific fit for this role based on their resume>",
-    interviewQuestions:["<behavioral Q about their background>","<technical Q relevant to role>","<gap-probing Q>"],
-    recommendation:"<STRONG_YES|YES|MAYBE|NO>"
-  };
-  const userPrompt="Candidate name: "+resume.name+"\nIMPORTANT: Use ONLY the resume text below. Do NOT use placeholder/example values. The name field must be exactly: "+resume.name+"\n\nJOB DESCRIPTION:\n"+jd+"\n\nRESUME TEXT:\n"+resumeText+"\n\nReturn this JSON structure filled with real data from the resume above:\n"+JSON.stringify(templateJSON,null,2)+"\n\nrecommendation must be one of: STRONG_YES YES MAYBE NO";
+  if(!resumeText||resumeText.length<30){throw new Error("Could not extract text from PDF for "+resume.name+". Make sure it is a text-based PDF, not a scanned image.");}
+
+  const systemPrompt=`You are a senior technical recruiter with 15 years of experience. You evaluate candidates strictly and fairly based ONLY on evidence in their resume.
+
+SCORING RULES — be strict and differentiated, not generous:
+- SKILLS (0-100): Count exact skill matches to JD requirements. 90-100=matches all required+nice-to-have. 70-89=matches most required. 50-69=matches some. Below 50=missing core skills.
+- EXPERIENCE (0-100): Years and relevance. 90-100=5+ yrs directly relevant domain. 70-89=3-5 yrs relevant or 5+ yrs adjacent. 50-69=2-3 yrs or wrong domain. Below 50=<2 yrs or no relevant experience.  
+- EDUCATION (0-100): 90-100=MBA/MS from top school + relevant undergrad. 70-89=good degree relevant field. 50-69=any degree. Below 50=no degree mentioned or unrelated.
+- COMMUNICATION (0-100): Judge from resume quality, writing clarity, quantified achievements, structured presentation. Evidence of stakeholder/exec communication in job history.
+
+CRITICAL: Different candidates MUST get different scores reflecting their actual differences. Do not cluster scores.
+Output ONLY raw JSON, no markdown, no explanation.`;
+
+  const userPrompt=`CANDIDATE: ${resume.name}
+
+JOB DESCRIPTION:
+${jd}
+
+RESUME TEXT (extracted from PDF):
+${resumeText}
+
+Analyze the above resume against the JD. Return this exact JSON:
+{
+  "name": "${resume.name}",
+  "headline": "<their actual current role in 3-4 words>",
+  "yearsExp": <total years of professional experience as integer>,
+  "skills": ["<actual skill from resume>","<actual skill>","<actual skill>","<actual skill>","<actual skill>"],
+  "scores": {
+    "skills": <integer 0-100, based on skill match rubric above>,
+    "experience": <integer 0-100, based on experience rubric above>,
+    "education": <integer 0-100, based on education rubric above>,
+    "communication": <integer 0-100, based on communication rubric above>
+  },
+  "strengths": [
+    "<specific evidence-based strength: cite actual thing from resume>",
+    "<specific evidence-based strength: cite actual thing from resume>",
+    "<specific evidence-based strength: cite actual thing from resume>"
+  ],
+  "gaps": [
+    "<specific gap: JD requires X, resume shows no evidence of X>",
+    "<specific gap: JD requires Y, resume shows no evidence of Y>"
+  ],
+  "summary": "<3 sentences: 1) What ${resume.name} has done professionally. 2) How well they fit this specific role with specific evidence. 3) Key risk or concern.>",
+  "interviewQuestions": [
+    "<behavioral question probing a specific thing in their background>",
+    "<technical question about a skill gap or claimed expertise>",
+    "<situational question about their weakest area vs JD>"
+  ],
+  "recommendation": "<STRONG_YES if score>=80 | YES if score>=65 | MAYBE if score>=45 | NO if score<45>"
+}`;
+
   const raw=await callAI([
-    {role:"system",content:"You are a recruiter AI. Respond ONLY with a valid JSON object. No markdown, no code fences, no extra text. Raw JSON only. Use ONLY the resume text provided to fill scores and assessment - never use placeholder example data."},
+    {role:"system",content:systemPrompt},
     {role:"user",content:userPrompt}
-  ],1200);
-  const clean=raw.replace(/^```jsons*/i,"").replace(/^```/,"").replace(/```s*$/,"").trim();
+  ],1500);
+  const clean=raw.replace(/^```json\s*/i,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim();
   const parsed=JSON.parse(clean);
+  // Always enforce the candidate's actual name
   parsed.name=resume.name;
+  // Clamp all scores to valid range
+  if(parsed.scores){
+    ["skills","experience","education","communication"].forEach(k=>{
+      parsed.scores[k]=Math.min(100,Math.max(0,parseInt(parsed.scores[k])||0));
+    });
+  }
   return parsed;
 }
 
