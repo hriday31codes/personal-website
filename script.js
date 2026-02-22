@@ -98,23 +98,45 @@ async function handlePdfUpload(id,file){
 async function extractPdfText(file){
   try{
     const arrayBuffer=await file.arrayBuffer();
-    const pdfjsLib=window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+    const pdfjsLib=window.pdfjsLib;
+    if(!pdfjsLib){throw new Error("PDF.js not loaded");}
+    pdfjsLib.GlobalWorkerOptions.workerSrc='';
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer),disableWorker:true}).promise;
     let fullText="";
     for(let i=1;i<=pdf.numPages;i++){
       const page=await pdf.getPage(i);
-      const content=await page.getTextContent();
-      const pageText=content.items.map(item=>item.str).join(" ");
-      fullText+=pageText+" ";
+      const tc=await page.getTextContent();
+      fullText+=tc.items.map(item=>item.str).join(" ")+" ";
     }
     const cleaned=fullText.replace(/\s+/g," ").trim().slice(0,5000);
-    console.log("PDF extracted for",file.name,":",cleaned.slice(0,200));
-    return cleaned||"No text extracted from "+file.name;
+    return cleaned||"No readable text found in "+file.name;
   }catch(e){
-    console.error("PDF.js extraction failed:",e);
-    return "Could not extract text from "+file.name+". Please ensure it is a text-based PDF (not scanned image).";
+    console.error("PDF extraction error:",e.message);
+    // Fallback to basic extraction
+    return await extractPdfTextFallback(file);
   }
+}
+
+function extractPdfTextFallback(file){
+  return new Promise(function(resolve){
+    const reader=new FileReader();
+    reader.onload=function(){
+      try{
+        const bytes=new Uint8Array(reader.result);
+        let raw="",chunk="";
+        for(let i=0;i<bytes.length;i++){
+          const b=bytes[i];
+          if(b>=32&&b<=126){chunk+=String.fromCharCode(b);}
+          else{if(chunk.length>=4)raw+=chunk+" ";chunk="";}
+        }
+        if(chunk.length>=4)raw+=chunk;
+        const skip=/^(obj|endobj|stream|endstream|xref|trailer|startxref|BT|ET|Tf|Td|TD|Tm|TJ|Tj|cm|Do|CS|cs|RG|rg|re|EMC|BMC|BDC)$/;
+        const tokens=raw.split(/\s+/).filter(t=>t.length>3&&!/^[\d\.\-]+$/.test(t)&&!skip.test(t)&&/[a-zA-Z]{2,}/.test(t));
+        resolve(tokens.join(" ").replace(/\s+/g," ").slice(0,5000)||"Could not extract text from "+file.name);
+      }catch(e){resolve("PDF: "+file.name);}
+    };
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 function updatePdfStatus(){
