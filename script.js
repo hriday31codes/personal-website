@@ -132,7 +132,7 @@ async function callAI(messages,maxTokens){
   const res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey,"HTTP-Referer":referer,"X-Title":"AI Candidate Intelligence"},
-    body:JSON.stringify({model:"google/gemini-flash-1.5",max_tokens:maxTokens||1000,temperature:0.1,messages})
+    body:JSON.stringify({model:"google/gemini-2.0-flash-001",max_tokens:maxTokens||1000,temperature:0.1,messages})
   });
   if(!res.ok){
     let errMsg="HTTP "+res.status;
