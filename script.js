@@ -100,10 +100,21 @@ function extractPdfText(file){
     const reader=new FileReader();
     reader.onload=function(){
       try{
-        const bytes=new Uint8Array(reader.result);let text="";
-        for(let i=0;i<bytes.length;i++){if(bytes[i]>=32&&bytes[i]<127)text+=String.fromCharCode(bytes[i]);else if(bytes[i]===10||bytes[i]===13)text+=" ";}
-        const words=text.match(/[A-Za-z][A-Za-z0-9\s\.\,\-\+\@\:]{3,}/g)||[];
-        resolve(words.join(" ").replace(/\s+/g," ").slice(0,3000));
+        const bytes=new Uint8Array(reader.result);
+        let raw="";
+        // Extract readable ASCII strings (min length 4) from PDF binary
+        let chunk="";
+        for(let i=0;i<bytes.length;i++){
+          const b=bytes[i];
+          if(b>=32&&b<=126){chunk+=String.fromCharCode(b);}
+          else{if(chunk.length>=4)raw+=chunk+" ";chunk="";}
+        }
+        if(chunk.length>=4)raw+=chunk;
+        // Clean up PDF syntax noise - remove short tokens and PDF keywords
+        const pdfKeywords=/^(obj|endobj|stream|endstream|xref|trailer|startxref|BT|ET|Tf|Td|TD|Tm|TJ|Tj|cm|Do|CS|cs|SCN|scn|RG|rg|re|W|n|q|Q|f|S|s|b|B|EMC|BMC|BDC|DP|MP)$/;
+        const tokens=raw.split(/\s+/).filter(t=>t.length>3&&!/^\d+(\.\d+)?$/.test(t)&&!pdfKeywords.test(t)&&/[a-zA-Z]/.test(t));
+        const text=tokens.join(" ").replace(/\s+/g," ").slice(0,4000);
+        resolve(text||"Could not extract text from "+file.name);
       }catch(e){resolve("PDF: "+file.name);}
     };
     reader.readAsArrayBuffer(file);
@@ -123,7 +134,7 @@ function updateAnalyzeBtn(){
 }
 
 function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");}
-function resetToSetup(){results=[];selectedId=null;showPage("page-setup");}
+function resetToSetup(){results=[];selectedId=null;pdfSlots=[];buildPdfSlots(pdfCount);renderList&&renderList();showPage("page-setup");}
 function showError(msg){const e=document.getElementById("setup-error");e.textContent=msg;e.classList.add("active");}
 function clearError(){document.getElementById("setup-error").classList.remove("active");}
 
@@ -145,12 +156,28 @@ async function callAI(messages,maxTokens){
 
 async function analyzeResume(jd,resume){
   const resumeText=resume.pdfText||resume.raw||"";
+  if(!resumeText||resumeText.length<50){throw new Error("Could not extract enough text from PDF for "+resume.name);}
+  const templateJSON={
+    name:resume.name,
+    headline:"<3-word title from resume>",
+    yearsExp:"<integer years>",
+    skills:["<skill from resume>","<skill>","<skill>","<skill>","<skill>"],
+    scores:{skills:"<0-100 based on JD match>",experience:"<0-100>",education:"<0-100>",communication:"<0-100>"},
+    strengths:["<specific strength from this resume>","<specific strength>","<specific strength>"],
+    gaps:["<specific gap vs JD>","<specific gap>"],
+    summary:"<Two sentences about "+resume.name+"s specific fit for this role based on their resume>",
+    interviewQuestions:["<behavioral Q about their background>","<technical Q relevant to role>","<gap-probing Q>"],
+    recommendation:"<STRONG_YES|YES|MAYBE|NO>"
+  };
+  const userPrompt="Candidate name: "+resume.name+"\nIMPORTANT: Use ONLY the resume text below. Do NOT use placeholder/example values. The name field must be exactly: "+resume.name+"\n\nJOB DESCRIPTION:\n"+jd+"\n\nRESUME TEXT:\n"+resumeText+"\n\nReturn this JSON structure filled with real data from the resume above:\n"+JSON.stringify(templateJSON,null,2)+"\n\nrecommendation must be one of: STRONG_YES YES MAYBE NO";
   const raw=await callAI([
-    {role:"system",content:"You are a recruiter AI. Respond ONLY with a valid JSON object. No markdown, no code fences. Raw JSON only."},
-    {role:"user",content:`Analyze this resume against the job description.\n\nJOB DESCRIPTION:\n${jd}\n\nCANDIDATE: ${resume.name}\nRESUME: ${resumeText}\n\nReturn exactly this JSON:\n{"name":"${resume.name}","headline":"3-word role summary","yearsExp":5,"skills":["s1","s2","s3","s4","s5"],"scores":{"skills":80,"experience":75,"education":65,"communication":70},"strengths":["strength 1","strength 2","strength 3"],"gaps":["gap 1","gap 2"],"summary":"Two honest sentences on fit.","interviewQuestions":["behavioral Q","technical Q","gap-probing Q"],"recommendation":"YES"}\nrecommendation must be one of: STRONG_YES YES MAYBE NO`}
-  ],1000);
-  const clean=raw.replace(/^```json\s*/i,"").replace(/^```/,"").replace(/```\s*$/,"").trim();
-  return JSON.parse(clean);
+    {role:"system",content:"You are a recruiter AI. Respond ONLY with a valid JSON object. No markdown, no code fences, no extra text. Raw JSON only. Use ONLY the resume text provided to fill scores and assessment - never use placeholder example data."},
+    {role:"user",content:userPrompt}
+  ],1200);
+  const clean=raw.replace(/^```jsons*/i,"").replace(/^```/,"").replace(/```s*$/,"").trim();
+  const parsed=JSON.parse(clean);
+  parsed.name=resume.name;
+  return parsed;
 }
 
 async function startAnalysis(){
