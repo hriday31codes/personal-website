@@ -486,8 +486,8 @@ function renderDetail(id) {
       </div>
       ${bias}
       <div class="email-btns">
-        <button class="btn" style="flex:1;" onclick="openEmail('${c._id}','shortlist')">📨 Draft Shortlist Email</button>
-        <button class="btn-ghost" style="flex:1;" onclick="openEmail('${c._id}','reject')">📋 Draft Rejection</button>
+        <button class="btn" style="flex:1;" onclick="openEmail('${c._id}','shortlist')"> Draft Shortlist Email</button>
+        <button class="btn-ghost" style="flex:1;" onclick="openEmail('${c._id}','reject')"> Draft Rejection</button>
       </div>
     </div>`;
 }
